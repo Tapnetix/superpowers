@@ -1,7 +1,7 @@
 {
   "name": "ggcoder",
   "version": "1.0.0",
-  "description": "Code review and fixing system for GridGain 9 / Apache Ignite 3 with specialized reviewers, fixers, and project-specific patterns",
+  "description": "Code review and fixing system for GridGain 9 / Apache Ignite 3 with 5 specialized reviewers, 6 fixers, and domain-specific patterns mined from 100+ PRs",
   "author": {
     "name": "GridGain"
   },
@@ -9,6 +9,14 @@
     "type": "git",
     "url": "https://github.com/gridgain/ggcoder"
   },
+  "keywords": [
+    "code-review",
+    "gridgain",
+    "ignite",
+    "java",
+    "concurrency",
+    "distributed-systems"
+  ],
   "engines": {
     "claude-code": ">=2.0.0"
   }

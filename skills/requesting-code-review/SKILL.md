@@ -5,9 +5,9 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
+Use layered review to catch domain-specific and architectural issues.
 
-**Core principle:** Review early, review often.
+**Core principle:** Review early, review often, with specialized reviewers.
 
 ## When to Request Review
 
@@ -21,17 +21,30 @@ Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 - Before refactoring (baseline check)
 - After fixing complex bug
 
-## How to Request
+## How to Request (Layered Review)
 
-**1. Get git SHAs:**
+**1. Get git SHAs and changed files:**
 ```bash
 BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
+git diff --name-only $BASE_SHA $HEAD_SHA
 ```
 
-**2. Dispatch code-reviewer subagent:**
+**2. Pass 1: GridGain Domain Reviewers (Parallel)**
 
-Use Task tool with superpowers:code-reviewer type, fill template at `code-reviewer.md`
+Dispatch based on file types:
+
+| File Type | Reviewers to Dispatch |
+|-----------|----------------------|
+| .java, .cs | gg-safety-reviewer, gg-quality-reviewer, gg-testing-reviewer |
+| .cpp, .h, .cmake, .sh | gg-cpp-reviewer |
+| build.gradle, CMakeLists.txt | gg-build-reviewer |
+
+**3. Pass 2: Architecture Review**
+
+After domain issues fixed, dispatch `ggcoder:code-reviewer`:
+
+Use Task tool with ggcoder:code-reviewer type, fill template at `code-reviewer.md`
 
 **Placeholders:**
 - `{WHAT_WAS_IMPLEMENTED}` - What you just built
@@ -40,7 +53,7 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 - `{HEAD_SHA}` - Ending commit
 - `{DESCRIPTION}` - Brief summary
 
-**3. Act on feedback:**
+**4. Act on feedback:**
 - Fix Critical issues immediately
 - Fix Important issues before proceeding
 - Note Minor issues for later
@@ -49,28 +62,47 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 ## Example
 
 ```
-[Just completed Task 2: Add verification function]
+[Just completed Task 2: Add cache invalidation in Java]
 
-You: Let me request code review before proceeding.
+You: Let me request layered code review before proceeding.
 
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers:code-reviewer subagent]
-  WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/plans/deployment-plan.md
+# Check changed files
+git diff --name-only $BASE_SHA $HEAD_SHA
+→ src/main/java/CacheManager.java
+→ src/test/java/CacheManagerTest.java
+
+# Pass 1: GridGain Domain Reviewers (parallel for .java files)
+[Dispatch gg-safety-reviewer, gg-quality-reviewer, gg-testing-reviewer in parallel]
+
+gg-safety-reviewer returns:
+  [HIGH] Missing volatile on sharedCache field
+  Confidence: 92%
+
+gg-quality-reviewer returns:
+  [MEDIUM] Magic number 300 for timeout
+  Confidence: 90%
+
+gg-testing-reviewer returns:
+  [HIGH] Missing async variant test for invalidateAsync()
+  Confidence: 88%
+
+You: [Fix volatile, extract constant, add async test]
+
+# Pass 2: Architecture Review
+[Dispatch ggcoder:code-reviewer subagent]
+  WHAT_WAS_IMPLEMENTED: Cache invalidation with TTL support
+  PLAN_OR_REQUIREMENTS: Task 2 from docs/plans/cache-plan.md
   BASE_SHA: a7981ec
   HEAD_SHA: 3df7661
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
 
 [Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
+  Strengths: Clean architecture, good test coverage now
+  Issues: None after domain fixes
   Assessment: Ready to proceed
 
-You: [Fix progress indicators]
 [Continue to Task 3]
 ```
 

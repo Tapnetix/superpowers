@@ -29,8 +29,8 @@ if [ -n "$superpowers_conflict" ]; then
     warning_message="${warning_message}${superpowers_conflict}"
 fi
 
-# Read using-superpowers content
-using_superpowers_content=$(cat "${PLUGIN_ROOT}/skills/using-superpowers/SKILL.md" 2>&1 || echo "Error reading using-superpowers skill")
+# Read using-ggcoder content
+using_ggcoder_content=$(cat "${PLUGIN_ROOT}/skills/using-ggcoder/SKILL.md" 2>&1 || echo "Error reading using-ggcoder skill")
 
 # Escape string for JSON embedding using bash parameter substitution.
 # Each ${s//old/new} is a single C-level pass - orders of magnitude
@@ -45,7 +45,7 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-using_superpowers_escaped=$(escape_for_json "$using_superpowers_content")
+using_ggcoder_escaped=$(escape_for_json "$using_ggcoder_content")
 warning_escaped=$(escape_for_json "$warning_message")
 
 # Output context injection as JSON
@@ -53,7 +53,7 @@ cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have ggcoder superpowers.\n\n**Below is the full content of your 'ggcoder:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}\n</EXTREMELY_IMPORTANT>"
+    "additionalContext": "<EXTREMELY_IMPORTANT>\nYou have ggcoder powers.\n\n**Below is the full content of your 'ggcoder:using-ggcoder' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_ggcoder_escaped}\n\n${warning_escaped}\n</EXTREMELY_IMPORTANT>"
   }
 }
 EOF

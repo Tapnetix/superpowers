@@ -144,7 +144,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/tapnetix/gg
 
 **Meta**
 - **writing-skills** - Create new skills following best practices (includes testing methodology)
-- **using-superpowers** - Introduction to the skills system
+- **using-ggcoder** - Introduction to the skills system
 
 ### Agents (12 Total)
 

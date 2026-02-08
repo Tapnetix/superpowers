@@ -7,7 +7,10 @@
   "plugins": [
     {
       "name": "ggcoder",
-      "source": ".",
+      "source": {
+        "type": "local",
+        "path": ".."
+      },
       "description": "Extended skills library for Claude Code: TDD, debugging, collaboration patterns, plus GridGain/Ignite specialized code review with 5 reviewers, 6 fixers, and domain-specific patterns",
       "version": "4.2.0",
       "homepage": "https://github.com/tapnetix/ggcoder",

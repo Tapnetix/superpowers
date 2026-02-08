@@ -8,6 +8,23 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Cross-platform timeout function (works on macOS without coreutils)
+run_with_timeout() {
+    local timeout_seconds="$1"
+    shift
+
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_seconds" "$@"
+        return $?
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "$timeout_seconds" "$@"
+        return $?
+    else
+        "$@"
+        return $?
+    fi
+}
+
 # Source test helpers if available
 if [ -f "$SCRIPT_DIR/../claude-code/test-helpers.sh" ]; then
     source "$SCRIPT_DIR/../claude-code/test-helpers.sh"
@@ -286,7 +303,7 @@ Focus on: thread safety, race conditions, synchronization.
 Report issues with confidence levels (Critical 80%+, High 85%+)."
 
     # Run with timeout
-    if output=$(timeout 120 claude -p "$concurrency_prompt" --allowedTools "" 2>&1); then
+    if output=$(run_with_timeout 120 claude -p "$concurrency_prompt" --allowedTools "" 2>&1); then
         # Check if it found the thread safety issue
         if echo "$output" | grep -qi "thread.safe\|HashMap\|synchronized\|ConcurrentHashMap\|race"; then
             pass "Detected thread safety issue in HashMap usage"
@@ -317,7 +334,7 @@ $(cat "$FIXTURES_DIR/ResourceLeak.java")
 
 Focus on: resource cleanup, try-with-resources, stream closing."
 
-    if output=$(timeout 120 claude -p "$resource_prompt" --allowedTools "" 2>&1); then
+    if output=$(run_with_timeout 120 claude -p "$resource_prompt" --allowedTools "" 2>&1); then
         if echo "$output" | grep -qi "close\|resource.leak\|try.with.resources\|finally\|AutoCloseable"; then
             pass "Detected resource leak (unclosed stream)"
         else
@@ -340,7 +357,7 @@ $(cat "$FIXTURES_DIR/NullIssue.java")
 
 Focus on: null checks, NullPointerException prevention, defensive programming."
 
-    if output=$(timeout 120 claude -p "$null_prompt" --allowedTools "" 2>&1); then
+    if output=$(run_with_timeout 120 claude -p "$null_prompt" --allowedTools "" 2>&1); then
         if echo "$output" | grep -qi "null\|NullPointerException\|Objects.requireNonNull\|@Nullable"; then
             pass "Detected null safety issues"
         else
@@ -363,7 +380,7 @@ $(cat "$FIXTURES_DIR/GoodCode.java")
 
 Report only genuine issues with confidence 80%+. If the code is safe, say so."
 
-    if output=$(timeout 120 claude -p "$good_prompt" --allowedTools "" 2>&1); then
+    if output=$(run_with_timeout 120 claude -p "$good_prompt" --allowedTools "" 2>&1); then
         # Should NOT find major issues
         if echo "$output" | grep -qi "no.issues\|looks.good\|safe\|well.written\|no.concerns\|clean"; then
             pass "No false positives on clean code"

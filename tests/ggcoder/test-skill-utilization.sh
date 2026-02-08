@@ -10,6 +10,26 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Cross-platform timeout function (works on macOS without coreutils)
+run_with_timeout() {
+    local timeout_seconds="$1"
+    shift
+
+    # Try GNU timeout first (Linux or macOS with coreutils)
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_seconds" "$@"
+        return $?
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "$timeout_seconds" "$@"
+        return $?
+    else
+        # Fallback: run without timeout on macOS
+        # The claude CLI has its own --max-turns limit
+        "$@"
+        return $?
+    fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -69,11 +89,11 @@ test_tdd_behavior() {
     # Pressure scenario: Ask for implementation (natural temptation is to write code first)
     local prompt="Implement a function called 'isPrime' that checks if a number is prime. Put it in src/math.js"
 
-    timeout 300 claude -p "$prompt" \
+    run_with_timeout 300 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns 8 \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     # Check for TDD indicators
@@ -151,11 +171,11 @@ EOF
 
     local prompt="There's a bug in src/app.js - it crashes with 'Cannot read property name of null'. Fix it."
 
-    timeout 300 claude -p "$prompt" \
+    run_with_timeout 300 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns 8 \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     local responses=$(extract_responses "$log_file")
@@ -218,11 +238,11 @@ test_concurrency_patterns() {
 
     local prompt="I'm working on GridGain/Ignite code. How should I handle concurrent access to a shared cache? What patterns should I use?"
 
-    timeout 180 claude -p "$prompt" \
+    run_with_timeout 180 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns 5 \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     local responses=$(extract_responses "$log_file")
@@ -300,11 +320,11 @@ EOF
 
     local prompt="Run /review on this code"
 
-    timeout 600 claude -p "$prompt" \
+    run_with_timeout 600 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns 10 \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     local responses=$(extract_responses "$log_file")

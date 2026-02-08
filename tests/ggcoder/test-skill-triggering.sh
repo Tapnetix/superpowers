@@ -7,6 +7,23 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Cross-platform timeout function (works on macOS without coreutils)
+run_with_timeout() {
+    local timeout_seconds="$1"
+    shift
+
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_seconds" "$@"
+        return $?
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "$timeout_seconds" "$@"
+        return $?
+    else
+        "$@"
+        return $?
+    fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -57,19 +74,26 @@ test_skill_trigger() {
     cd "$project_dir"
 
     # Run Claude
-    timeout 180 claude -p "$prompt" \
+    run_with_timeout 180 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns "$max_turns" \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     # Check if skill was triggered
-    local skill_pattern='"skill":"([^"]*:)?'"${skill_name}"'"'
+    # skill_name can be a pipe-separated list of alternatives (e.g., "tdd|test-driven-development")
     local triggered=false
 
-    if grep -q '"name":"Skill"' "$log_file" && grep -qE "$skill_pattern" "$log_file"; then
-        triggered=true
+    if grep -q '"name":"Skill"' "$log_file"; then
+        # Check each skill name alternative
+        for alt_skill in $(echo "$skill_name" | tr '|' ' '); do
+            local skill_pattern='"skill":"([^"]*:)?'"${alt_skill}"'"'
+            if grep -qE "$skill_pattern" "$log_file"; then
+                triggered=true
+                break
+            fi
+        done
     fi
 
     # Check if expected pattern appears (skill was actually used)
@@ -147,11 +171,11 @@ EOF
     git init -q 2>/dev/null || true
 
     # Run Claude
-    timeout 300 claude -p "$prompt" \
+    run_with_timeout 300 claude -p "$prompt" \
         --plugin-dir "$PLUGIN_DIR" \
         --dangerously-skip-permissions \
         --max-turns "$max_turns" \
-        --output-format stream-json \
+        --output-format stream-json --verbose \
         > "$log_file" 2>&1 || true
 
     # Check if agent was dispatched via Task tool
@@ -192,9 +216,10 @@ test_skill_trigger \
     3
 
 # Test: test-driven-development triggers on implementation request
+# Note: Claude may trigger 'tdd' command or 'test-driven-development' skill
 test_skill_trigger \
     "tdd-implementation" \
-    "test-driven-development" \
+    "tdd\|test-driven-development" \
     "Help me implement a function to validate email addresses using TDD." \
     "test.*first\|RED.*GREEN\|failing test" \
     3

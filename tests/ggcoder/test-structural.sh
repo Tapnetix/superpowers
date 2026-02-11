@@ -177,7 +177,7 @@ echo ""
 # ============================================
 info "4. Command Configuration Tests"
 
-commands=("review" "fix" "brainstorm" "execute-plan" "write-plan")
+commands=("review" "fix" "brainstorm" "execute-plan" "write-plan" "code-review" "pr-review")
 
 for cmd in "${commands[@]}"; do
     cmd_file="$PLUGIN_ROOT/commands/${cmd}.md"

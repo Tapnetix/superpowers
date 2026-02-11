@@ -77,6 +77,20 @@ These thoughts mean STOP—you're rationalizing:
 
 **Invoke the skill BEFORE exploring code, running commands, or taking any action.**
 
+## Explicit Review Commands
+
+When you want to run code review directly without relying on skill auto-triggering:
+
+| Command | Purpose |
+|---------|---------|
+| `/code-review` | Review uncommitted changes (git diff) with all reviewers in parallel |
+| `/pr-review` | Review a PR with all reviewers + fixers in parallel |
+| `/review` | General review (current branch, PR number, or branch name) |
+| `/fix <category>` | Fix issues by category (safety, quality, tests, docs, cpp, build) |
+
+**Use `/code-review` after writing code to catch issues before committing.**
+**Use `/pr-review` before merging to get full review + automatic fixes.**
+
 ## Skill Priority
 
 When multiple skills could apply, use this order:
